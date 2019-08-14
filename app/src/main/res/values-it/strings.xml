@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="ip">Ip</string>
+    <string name="port">Porta</string>
+    <string name="username">Utente</string>
+    <string name="password">Password</string>
+    <string name="add_account">Aggiungi account</string>
+    <string name="anonymous">Anonimo</string>
+    <string name="open_saf">Apri l\'archivio di Android</string>
+    <string name="open_app_settings">Apri le impostazioni dell\'app</string>
+	<string name="add_account_instructions">Per aggiungere un server FTP è necessario creare un nuovo account FTP che verrà visualizzato nella sezione degli account di Android, per farlo fare clic su questo pulsante</string>
+	<string name="open_saf_instructions">Per aprire l\'archivio di android (SAF) puoi usare questo pulsante perché alcuni OEM lo nascondono perché non capiscono il suo vero potenziale</string>
+	<string name="bug_fix_instructions">Se l\'account ftp non viene visualizzato nella sezione laterale, è necessario forzare la chiusura di questa app perché il gestore di file Android (SAF) non ha ancora aggiornato gli accounts</string>
+</resources>
