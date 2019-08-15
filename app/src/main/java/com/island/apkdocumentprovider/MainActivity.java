@@ -8,8 +8,6 @@ import android.view.*;
 public class MainActivity extends Activity
 {
 	public static final String LOG_TAG="APKDocumentProvider";
-	public static final String ACCOUNT_TYPE="com.island.ftp.account";
-	public static final String TOKEN_TYPE="login";
 	@Override
 	protected void onCreate(Bundle savedInstanceState)
 	{
