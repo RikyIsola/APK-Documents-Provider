@@ -224,16 +224,18 @@ public class AppsProvider extends DocumentsProvider
 	{
         try
 		{
-			Log.i(LOG_TAG,"Query Child Documents: rootId="+rootId+" Query="+query+" Projection="+projection);
+			Log.i(LOG_TAG,"Query Search Documents: rootId="+rootId+" Query="+query+" Projection="+projection);
+			query=query.toLowerCase();
 			MatrixCursor result=new MatrixCursor(resolveDocumentProjection(projection));
 			PackageManager packageManager=getContext().getPackageManager();
 			List<ApplicationInfo>packages=packageManager.getInstalledApplications(PackageManager.GET_META_DATA);
 			for(ApplicationInfo packageInfo:packages)
 			{
-				String name=packageInfo.packageName;
-				if(name.contains(query))
+				String name=packageInfo.loadLabel(packageManager).toString().toLowerCase();
+				String pack=packageInfo.packageName;
+				if(name.contains(query.toLowerCase())||pack.toLowerCase().contains(query))
 				{
-					putFileInfo(result.newRow(),getContext(),rootId+name);
+					putFileInfo(result.newRow(),getContext(),rootId+"/"+pack);
 				}
 			}
 			return result;
