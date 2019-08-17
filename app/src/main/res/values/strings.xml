@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name" translatable="false">APKDocumentProvider</string>
+    <string name="app_name" translatable="false">APK Documents Provider</string>
 	<string name="account_name" translatable="false">File Transfer Protocol</string>
 	<string name="system_apps">System Apps</string>
 	<string name="provider_name">APK Files</string>

@@ -1,4 +1,4 @@
-package com.island.apkdocumentprovider;
+package com.island.apkdocumentsprovider;
 import android.content.*;
 import android.content.pm.*;
 import android.database.*;
