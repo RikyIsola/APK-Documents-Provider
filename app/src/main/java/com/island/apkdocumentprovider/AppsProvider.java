@@ -27,6 +27,7 @@ public class AppsProvider extends DocumentsProvider
 	public boolean onCreate()
 	{
 		Log.i(LOG_TAG,"Documents provider created");
+		//Return true because the initialization always succeeds
 		return true;
 	}
 	@Override
@@ -35,6 +36,7 @@ public class AppsProvider extends DocumentsProvider
 		try
 		{
 			Log.i(LOG_TAG,"Query Root: Projection="+Arrays.toString(projection));
+			//Add a single root because there is only one list of installed apps
 			MatrixCursor result=new MatrixCursor(resolveRootProjection(projection));
 			MatrixCursor.RowBuilder row=result.newRow();
 			row.add(Root.COLUMN_ROOT_ID,INSTALLED_APPS);
@@ -60,8 +62,9 @@ public class AppsProvider extends DocumentsProvider
 		try
 		{
 			Log.i(LOG_TAG,"Query Document: DocumentId="+documentId+" Projection="+Arrays.toString(projection));
+			//Add the infos of the selected document
 			MatrixCursor result=new MatrixCursor(resolveDocumentProjection(projection));
-			putFileInfo(result.newRow(),getContext(),documentId);
+			putFileInfo(result.newRow(),getContext().getResources(),getContext().getPackageManager(),documentId);
 			return result;
 		}
 		catch(Exception e)
@@ -77,14 +80,16 @@ public class AppsProvider extends DocumentsProvider
 		try
 		{
 			Log.i(LOG_TAG,"Query Child Documents: ParentDocumentId="+parentDocumentId+" Projection="+projection+" SortOrder="+sortOrder);
+			//Add the infos of every package based on the type requested
 			MatrixCursor result=new MatrixCursor(resolveDocumentProjection(projection));
 			PackageManager packageManager=getContext().getPackageManager();
 			List<PackageInfo>packages=packageManager.getInstalledPackages(PackageManager.GET_META_DATA);
 			String root;
 			if(getRoot(parentDocumentId).equals(INSTALLED_APPS))
 			{
+				//Add a folder to access the system apps and separe them from the user's apps
 				root=INSTALLED_APPS;
-				putFileInfo(result.newRow(),getContext(),SYSTEM_APPS+"/");
+				putFileInfo(result.newRow(),getContext().getResources(),getContext().getPackageManager(),SYSTEM_APPS+"/");
 			}
 			else root=SYSTEM_APPS;
 			for(PackageInfo packageInfo:packages)
@@ -92,7 +97,7 @@ public class AppsProvider extends DocumentsProvider
 				String name=packageInfo.packageName;
 				if(root.equals(SYSTEM_APPS)^packageInfo.applicationInfo.sourceDir.startsWith(INSTALLED_APPS_DIR))
 				{
-					putFileInfo(result.newRow(),getContext(),parentDocumentId+name);
+					putFileInfo(result.newRow(),getContext().getResources(),getContext().getPackageManager(),parentDocumentId+name);
 				}
 			}
 			return result;
@@ -105,34 +110,12 @@ public class AppsProvider extends DocumentsProvider
 		}
 	}
 	@Override
-	public ParcelFileDescriptor openDocument(String documentId,String mode,CancellationSignal signal)throws FileNotFoundException
-	{
-		try
-		{
-			Log.i(LOG_TAG,"Open Document: DocumentId="+documentId+" mode="+mode+" signal="+signal);
-			int accessMode=ParcelFileDescriptor.parseMode(mode);
-			boolean isWrite=(mode.indexOf('w')!=-1);
-			ApplicationInfo info=getContext().getPackageManager().getApplicationInfo(getPackage(documentId),PackageManager.GET_META_DATA);
-			File file=new File(info.sourceDir);
-			if(isWrite)
-			{
-				throw new UnsupportedOperationException("Write not supported");
-			}
-			return ParcelFileDescriptor.open(file,accessMode);
-		}
-		catch(Exception e)
-		{
-			String msg="Error opening document "+documentId;
-			Log.e(LOG_TAG,msg,e);
-			throw new FileNotFoundException(msg);
-		}
-	}
-	@Override
 	public AssetFileDescriptor openDocumentThumbnail(String documentId,Point sizeHint,CancellationSignal signal)throws FileNotFoundException
 	{
 		try
 		{
 			Log.i(LOG_TAG,"Open Document Thumbnail: DocumentId="+documentId+" sizeHint="+sizeHint+" signal="+signal);
+			//Load the resources of the app and load its icon as a bitmap
 			String pack=getPackage(documentId);
 			PackageManager packageManager=getContext().getPackageManager();
 			ApplicationInfo app=packageManager.getApplicationInfo(pack,PackageManager.GET_META_DATA);
@@ -144,6 +127,7 @@ public class AppsProvider extends DocumentsProvider
 			int sample=1;
 			while(width>=sizeHint.x||height>=sizeHint.y)
 			{
+				//If the icon is too big, it reduces its sizes
 				sample*=2;
 				width/=2;
 				height/=2;
@@ -153,6 +137,7 @@ public class AppsProvider extends DocumentsProvider
 			Bitmap bitmap=BitmapFactory.decodeResource(packageManager.getResourcesForApplication(pack),app.icon,options);
 			if(bitmap!=null)
 			{
+				//Save the icon in a temporary file and return the parcel of the file
 				File dir=new File(getContext().getExternalCacheDir(),"icons");
 				if(!dir.exists())dir.mkdir();
 				final File file=new File(dir,app.name+".png");
@@ -186,12 +171,37 @@ public class AppsProvider extends DocumentsProvider
 			throw new FileNotFoundException(msg);
 		}
 	}
+	@Override
+	public ParcelFileDescriptor openDocument(String documentId,String mode,CancellationSignal signal)throws FileNotFoundException
+	{
+		try
+		{
+			Log.i(LOG_TAG,"Open Document: DocumentId="+documentId+" mode="+mode+" signal="+signal);
+			//Create a parcel of the apk file
+			int accessMode=ParcelFileDescriptor.parseMode(mode);
+			boolean isWrite=(mode.indexOf('w')!=-1);
+			ApplicationInfo info=getContext().getPackageManager().getApplicationInfo(getPackage(documentId),PackageManager.GET_META_DATA);
+			File file=new File(info.sourceDir);
+			if(isWrite)
+			{
+				throw new UnsupportedOperationException("Write not supported");
+			}
+			return ParcelFileDescriptor.open(file,accessMode);
+		}
+		catch(Exception e)
+		{
+			String msg="Error opening document "+documentId;
+			Log.e(LOG_TAG,msg,e);
+			throw new FileNotFoundException(msg);
+		}
+	}
     @Override
     public void deleteDocument(String documentId)throws FileNotFoundException
 	{
         try
 		{
 			Log.i(LOG_TAG,"Delete document: documentId="+documentId);
+			//Start the dialog to uninstall the app
 			Uri packageUri=Uri.parse("package:"+getPackage(documentId));
             Intent uninstallIntent=new Intent(Intent.ACTION_UNINSTALL_PACKAGE, packageUri);
             getContext().startActivity(uninstallIntent);
@@ -203,28 +213,13 @@ public class AppsProvider extends DocumentsProvider
 			throw new FileNotFoundException(msg);
 		}
     }
-    @Override
-    public String getDocumentType(String documentId)throws FileNotFoundException
-	{
-		try
-		{
-			Log.i(LOG_TAG,"Get document type: documentId="+documentId);
-			if(getPackage(documentId).isEmpty())return Document.MIME_TYPE_DIR;
-        	else return APK_MIME_TYPE;
-		}
-		catch(Exception e)
-		{
-			String msg="Error getting type of "+documentId;
-			Log.e(LOG_TAG,msg,e);
-			throw new FileNotFoundException(msg);
-		}
-    }
 	@Override
     public Cursor querySearchDocuments(String rootId,String query,String[]projection)throws FileNotFoundException
 	{
         try
 		{
 			Log.i(LOG_TAG,"Query Search Documents: rootId="+rootId+" Query="+query+" Projection="+projection);
+			//Search the apk based on the package or app name
 			query=query.toLowerCase();
 			MatrixCursor result=new MatrixCursor(resolveDocumentProjection(projection));
 			PackageManager packageManager=getContext().getPackageManager();
@@ -235,7 +230,7 @@ public class AppsProvider extends DocumentsProvider
 				String pack=packageInfo.packageName;
 				if(name.contains(query.toLowerCase())||pack.toLowerCase().contains(query))
 				{
-					putFileInfo(result.newRow(),getContext(),rootId+"/"+pack);
+					putFileInfo(result.newRow(),getContext().getResources(),getContext().getPackageManager(),rootId+"/"+pack);
 				}
 			}
 			return result;
@@ -247,32 +242,82 @@ public class AppsProvider extends DocumentsProvider
 			throw new FileNotFoundException(msg);
 		}
     }
+	@Override
+    public String getDocumentType(String documentId)throws FileNotFoundException
+	{
+		try
+		{
+			Log.i(LOG_TAG,"Get document type: documentId="+documentId);
+			//Return the mime type
+			if(getPackage(documentId).isEmpty())return Document.MIME_TYPE_DIR;
+        	else return APK_MIME_TYPE;
+		}
+		catch(Exception e)
+		{
+			String msg="Error getting type of "+documentId;
+			Log.e(LOG_TAG,msg,e);
+			throw new FileNotFoundException(msg);
+		}
+    }
+	/**
+	 * Return a non null projection
+	 * @param projection The projection to resolve
+	 * @return The projection itself or the default one
+	 */
 	private static String[]resolveDocumentProjection(String[]projection)
 	{
+		//If the proection is null return the default one
 		if(projection==null)return DEFAULT_DOCUMENT_PROJECTION;
 		else return projection;
 	}
+	/**
+	 * Return a non null projection
+	 * @param projection The projection to resolve
+	 * @return The projection itself or the default one
+	 */
 	private static String[]resolveRootProjection(String[]projection)
 	{
+		//If the proection is null return the default one
 		if(projection==null)return DEFAULT_ROOT_PROJECTION;
 		else return projection;
 	}
+	/**
+	 * Return the root of the document id
+	 * @param documentId The documentId to analyze
+	 * @return The root of the document id
+	 * @throws FileNotFoundException If the documentId doesn't contain a root
+	 */
 	private static String getRoot(String documentId)throws FileNotFoundException
 	{
+		//Split the string and return the first part
 		String[]strings=documentId.split("/");
 		if(strings.length<=0)throw new FileNotFoundException("Error getting root of "+documentId);
 		else return strings[0];
 	}
+	/**
+	 * Return the package of the document id
+	 * @param documentId The documentId to analyze
+	 * @return The package of the document id
+	 */
 	private static String getPackage(String documentId)
 	{
+		//Split the string and return the second part that contains the package
 		String[]strings=documentId.split("/");
 		if(strings.length<=1)return"";
 		else return strings[1];
 	}
+	/**
+	 * Return the package infos of a package name
+	 * @param packageManager The package manager to get the infos from
+	 * @param packageName The package name to search
+	 * @return The package infos
+	 * @throws FileNotFoundException If the package isn't installed
+	 */
 	private static PackageInfo getPackage(PackageManager packageManager,String packageName)throws FileNotFoundException
 	{
 		try
 		{
+			//Uses the package manager to get the package info instance
 			return packageManager.getPackageInfo(packageName,PackageManager.GET_META_DATA);
 		}
 		catch(PackageManager.NameNotFoundException e)
@@ -280,8 +325,17 @@ public class AppsProvider extends DocumentsProvider
 			throw new FileNotFoundException("Package not found for name "+packageName);
 		}
 	}
-	private static void putFileInfo(MatrixCursor.RowBuilder row,Context context,String documentId)throws FileNotFoundException
+	/**
+	 * Add the package infos to the matrix
+	 * @param row The row to add the infos
+	 * @param resources The resources to get the strings to display to the user
+	 * @param packageManager The package manager to use to load the infos
+	 * @param documentId The document to add
+	 * @throws FileNotFoundException If the documentId isn't well formed or if the package isn't installed
+	 */
+	private static void putFileInfo(MatrixCursor.RowBuilder row,Resources resources,PackageManager packageManager,String documentId)throws FileNotFoundException
 	{
+		//Add the properties of the package to the matrix
 		int flags=0;
 		String mime;
 		String name;
@@ -290,18 +344,18 @@ public class AppsProvider extends DocumentsProvider
 		{
 			mime=Document.MIME_TYPE_DIR;
 			String root=getRoot(documentId);
-			if(INSTALLED_APPS.equals(root))name=context.getString(R.string.installed_apps);
-			else name=context.getString(R.string.system_apps);
+			if(INSTALLED_APPS.equals(root))name=resources.getString(R.string.installed_apps);
+			else name=resources.getString(R.string.system_apps);
 		}
 		else
 		{
 			mime=APK_MIME_TYPE;
 			flags=Document.FLAG_SUPPORTS_DELETE|Document.FLAG_SUPPORTS_THUMBNAIL;
-			PackageInfo info=getPackage(context.getPackageManager(),packageName);
+			PackageInfo info=getPackage(packageManager,packageName);
 			File file=new File(info.applicationInfo.sourceDir);
 			row.add(Document.COLUMN_SIZE,file.length());
 			row.add(Document.COLUMN_LAST_MODIFIED,info.firstInstallTime);
-			name=info.applicationInfo.loadLabel(context.getPackageManager()).toString();
+			name=info.applicationInfo.loadLabel(packageManager).toString();
 		}
 		row.add(Document.COLUMN_FLAGS,flags);
 		row.add(Document.COLUMN_MIME_TYPE,mime);
