@@ -8,4 +8,4 @@ Download and install the latest app from the [release section](https://github.co
 
 ## Usage
 
-Just open the android defsult file manager and on the left panel you should see the apk files section where you can see all your .apk files
+Just open the android default file manager and on the left panel you should see the apk files section where you can see all your .apk files
