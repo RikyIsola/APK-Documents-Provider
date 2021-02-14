@@ -1,3 +1,5 @@
+## This project is no longer maintained, please use [this](https://github.com/RikyIsola/FileManagerUtils)
+
 # APK-Document-Provider
 
 This app adds to the android default file manager the ability to clone the .apk files stored in the device
